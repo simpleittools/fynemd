@@ -7,7 +7,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"io/ioutil"
+	d2 "github.com/sqweek/dialog"
+	"os"
 	"strings"
 )
 
@@ -53,6 +54,7 @@ func (app *config) makeUI() (*widget.Entry, *widget.RichText) {
 	preview := widget.NewRichTextFromMarkdown("")
 
 	app.EditWidget = edit
+	// need to force a line wrap
 	app.PreviewWidget = preview
 
 	// when editing with Markdown in the Edit window, automatically show the output in the Preview pane as Rich Text
@@ -79,8 +81,6 @@ func (app *config) createMenuItems(win fyne.Window) {
 
 }
 
-var filter = storage.NewExtensionFileFilter([]string{".md", ".MD"})
-
 func (app *config) saveFunc(win fyne.Window) func() {
 	return func() {
 		if app.CurrentFile != nil {
@@ -97,68 +97,55 @@ func (app *config) saveFunc(win fyne.Window) func() {
 
 func (app *config) saveAsFunc(win fyne.Window) func() {
 	return func() {
-		saveDialog := dialog.NewFileSave(func(write fyne.URIWriteCloser, err error) {
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
+		filePath, err := d2.File().Filter("Markdown Files", "md").Title("Save File As").Save()
+		if err != nil {
+			dialog.ShowError(err, win)
+			return
+		}
 
-			if write == nil {
-				// user cancelled
-				return
-			}
+		if filePath == "" {
+			return
+		}
 
-			if !strings.HasSuffix(strings.ToLower(write.URI().String()), ".md") {
-				dialog.ShowInformation("Error", "Please name your file with a .md extension!", win)
-				return
-			}
+		if !strings.HasSuffix(strings.ToLower(filePath), ".md") {
+			filePath = filePath + ".md" // automatically add the extension of .md
+		}
 
-			// save the file
-			write.Write([]byte(app.EditWidget.Text))
-			app.CurrentFile = write.URI()
+		err = os.WriteFile(filePath, []byte(app.EditWidget.Text), 0644)
+		if err != nil {
+			dialog.ShowError(err, win)
+			return
+		}
 
-			defer write.Close()
-
-			// update window title
-			win.SetTitle(win.Title() + " - " + write.URI().Name())
-			app.SaveMenuItem.Disabled = false
-		}, win)
-		saveDialog.SetFileName("untitled.md")
-		saveDialog.SetFilter(filter)
-		saveDialog.Show()
+		app.CurrentFile, _ = storage.ParseURI("file://" + filePath)
+		win.SetTitle(win.Title() + " - " + filePath)
+		app.SaveMenuItem.Disabled = false
 	}
 }
 
 func (app *config) openFunc(win fyne.Window) func() {
 	return func() {
-		openDialog := dialog.NewFileOpen(func(read fyne.URIReadCloser, err error) {
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
+		filePath, err := d2.File().Filter("Markdown Files", "md").Load()
+		if err != nil {
+			dialog.ShowError(err, win)
+			return
+		}
 
-			if read == nil {
-				return
-			}
+		if filePath == "" {
+			return
+		}
 
-			defer read.Close()
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			dialog.ShowError(err, win)
+		}
 
-			data, err := ioutil.ReadAll(read)
+		app.EditWidget.SetText(string(data))
 
-			if err != nil {
-				dialog.ShowError(err, win)
-				return
-			}
+		app.CurrentFile, _ = storage.ParseURI("file://" + filePath)
 
-			app.EditWidget.SetText(string(data))
+		win.SetTitle(win.Title() + " - " + filePath)
+		app.SaveMenuItem.Disabled = false
 
-			app.CurrentFile = read.URI()
-			win.SetTitle(win.Title() + " - " + read.URI().Name())
-			app.SaveMenuItem.Disabled = false
-
-		}, win)
-
-		openDialog.SetFilter(filter)
-		openDialog.Show()
 	}
 }
