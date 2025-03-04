@@ -82,7 +82,6 @@ func (app *config) createMenuItems(win fyne.Window) {
 	//viewMenu := fyne.NewMenu("View", showPreviewPane)
 
 	menu := fyne.NewMainMenu(fileMenu)
-
 	win.SetMainMenu(menu)
 
 }
