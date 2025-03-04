@@ -1,12 +1,12 @@
-BINARY_NAME=MarkDown.exe
-APP_NAME=MarkDown
-VERSION=1.0.0
+BINARY_NAME=SimpleMD
+APP_NAME=SimpleMD
+VERSION=0.1.0
 
 ## build: build binary and package app
 build:
 	rm -rf ${BINARY_NAME}
 	rm -f fyne-md
-	fyne package -appVersion ${VERSION} -name ${APP_NAME} --appID MarkDown1.0 -release
+	fyne package -appVersion ${VERSION} -name ${APP_NAME} --appID SimpleMD0.1.0-alpha -release
 
 ## run: builds and runs the application
 run:
