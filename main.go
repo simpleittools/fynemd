@@ -40,6 +40,7 @@ func main() {
 	// show window and run app
 	win.Resize(fyne.Size{Width: 800, Height: 500})
 	win.CenterOnScreen()
+	win.Canvas().Focus(edit)
 	win.ShowAndRun()
 }
 
